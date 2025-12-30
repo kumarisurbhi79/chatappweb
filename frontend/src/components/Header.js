@@ -1,4 +1,6 @@
 import React from 'react';
+import { useAuth } from '../utils/AuthContext';
+import config from '../config/config';
 import './Header.css';
 
 const Header = ({ user, onLogout, onProfile }) => {
@@ -13,7 +15,7 @@ const Header = ({ user, onLogout, onProfile }) => {
           <div className="user-info">
             <div className="user-avatar">
               {user?.avatar ? (
-                <img src={`http://localhost:5000${user.avatar}`} alt="Profile" />
+                <img src={`${config.API_URL}${user.avatar}`} alt="Profile" />
               ) : (
                 <span>{user?.username?.charAt(0).toUpperCase()}</span>
               )}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import config from '../config/config';
 import socketService from '../utils/socketService';
 import ChatList from '../components/ChatList';
 import ChatWindow from '../components/ChatWindow';
@@ -21,7 +22,7 @@ const Chat = () => {
   // Function to fetch users with recent messages
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/user/all', {
+      const response = await fetch(`${config.API_URL}/api/user/all`, {
         headers: getAuthHeaders(),
       });
 
@@ -126,7 +127,7 @@ const Chat = () => {
     if (selectedUser) {
       const fetchChatHistory = async () => {
         try {
-          const response = await fetch(`/api/chat/history/${selectedUser._id}`, {
+          const response = await fetch(`${config.API_URL}/api/chat/history/${selectedUser._id}`, {
             headers: getAuthHeaders(),
           });
 
@@ -177,7 +178,7 @@ const Chat = () => {
       });
 
       // Save to database
-      const response = await fetch('/api/chat/send', {
+      const response = await fetch(`${config.API_URL}/api/chat/send`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({

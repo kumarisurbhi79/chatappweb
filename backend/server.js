@@ -16,16 +16,21 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
+// Get frontend URL from environment variable or use localhost for development
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
-    methods: ["GET", "POST"]
+    origin: FRONTEND_URL,
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: 'http://localhost:3000',
+  origin: FRONTEND_URL,
   credentials: true
 }));
 app.use(express.json());
@@ -36,18 +41,47 @@ app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/chat', chatRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({
+    status: 'OK',
+    message: 'Chat App Backend is running',
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+// Basic error handling middleware
+app.use((err, req, res, next) => {
+  console.error('Error:', err.stack);
+  res.status(500).json({
+    message: 'Something went wrong!',
+    error: process.env.NODE_ENV === 'development' ? err.message : 'Internal server error'
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ message: 'API endpoint not found' });
+});
+
 // MongoDB connection
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI environment variable is not set');
+  process.exit(1);
+}
+
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => {
     console.log('✅ MongoDB connected successfully');
     console.log('📊 Database: chatapp');
-    console.log('🔗 Connection: ' + process.env.MONGODB_URI);
+    console.log('🔗 Connection: ' + process.env.MONGODB_URI.replace(/:([^:@]+)@/, ':****@'));
   })
   .catch(err => {
     console.log('❌ MongoDB connection failed:');
     console.log('Error:', err.message);
-    console.log('💡 Server will continue running for API testing');
-    console.log('💡 To fix: Add your IP to MongoDB Atlas whitelist');
+    console.log('💡 Check your MongoDB Atlas connection string and IP whitelist');
+    process.exit(1);
   });
 
 // Socket.io connection handling
@@ -131,6 +165,8 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 5000;
-server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
+  console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });

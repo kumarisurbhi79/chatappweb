@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
+import config from '../config/config';
 import './Profile.css';
 
 const Profile = () => {
@@ -9,7 +10,7 @@ const Profile = () => {
     username: user?.username || '',
   });
   const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(user?.avatar ? `http://localhost:5000${user.avatar}` : '');
+  const [preview, setPreview] = useState(user?.avatar ? `${config.API_URL}${user.avatar}` : '');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -66,7 +67,7 @@ const Profile = () => {
         formDataToSend.append('avatar', selectedFile);
       }
 
-      const response = await fetch('/api/user/profile', {
+      const response = await fetch(`${config.API_URL}/api/user/profile`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

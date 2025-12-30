@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import config from '../config/config';
 import './ChatList.css';
 
 const ChatList = ({ users, selectedUser, onUserSelect, currentUser }) => {
@@ -68,7 +69,7 @@ const ChatList = ({ users, selectedUser, onUserSelect, currentUser }) => {
             >
               <div className="user-avatar">
                 {user.avatar ? (
-                  <img src={`http://localhost:5000${user.avatar}`} alt={user.username} />
+                  <img src={`${config.API_URL}${user.avatar}`} alt={user.username} />
                 ) : (
                   <span>{user.username.charAt(0).toUpperCase()}</span>
                 )}

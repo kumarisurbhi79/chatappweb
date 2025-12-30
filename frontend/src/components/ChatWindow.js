@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '../utils/AuthContext';
+import config from '../config/config';
 import MessageInput from './MessageInput';
 import './ChatWindow.css';
 
@@ -102,7 +104,7 @@ const ChatWindow = ({
                 {showAvatar && (
                   <div className="message-avatar">
                     {message.sender.avatar ? (
-                      <img src={`http://localhost:5000${message.sender.avatar}`} alt={message.sender.username} />
+                      <img src={`${config.API_URL}${message.sender.avatar}`} alt={message.sender.username} />
                     ) : (
                       <span>{message.sender.username.charAt(0).toUpperCase()}</span>
                     )}
@@ -129,7 +131,7 @@ const ChatWindow = ({
           <div className="typing-indicator">
             <div className="typing-avatar">
               {selectedUser.avatar ? (
-                <img src={`http://localhost:5000${selectedUser.avatar}`} alt={selectedUser.username} />
+                <img src={`${config.API_URL}${selectedUser.avatar}`} alt={selectedUser.username} />
               ) : (
                 <span>{selectedUser.username.charAt(0).toUpperCase()}</span>
               )}

@@ -1,4 +1,5 @@
 import { io } from 'socket.io-client';
+import config from '../config/config';
 
 class SocketService {
   constructor() {
@@ -9,9 +10,15 @@ class SocketService {
   // Initialize socket connection
   connect(userId) {
     if (!this.socket) {
-      this.socket = io('http://localhost:5000', {
+      console.log('🔌 Connecting to:', config.SOCKET_URL);
+      
+      this.socket = io(config.SOCKET_URL, {
         transports: ['websocket', 'polling'],
-        forceNew: true
+        forceNew: true,
+        timeout: 20000,
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 1000
       });
 
       this.socket.on('connect', () => {
@@ -26,14 +33,23 @@ class SocketService {
       });
 
       this.socket.on('connect_error', (error) => {
-        console.error('❌ Connection error:', error);
+        console.error('❌ Connection error:', error.message || error);
         this.isConnected = false;
       });
 
-      this.socket.on('reconnect', () => {
-        console.log('🔄 Reconnected to server');
+      this.socket.on('reconnect', (attemptNumber) => {
+        console.log(`🔄 Reconnected to server (attempt ${attemptNumber})`);
         this.isConnected = true;
         this.socket.emit('join', userId);
+      });
+
+      this.socket.on('reconnect_error', (error) => {
+        console.error('❌ Reconnection error:', error.message || error);
+      });
+
+      this.socket.on('reconnect_failed', () => {
+        console.error('❌ Failed to reconnect to server');
+        alert('Unable to connect to chat server. Please refresh the page.');
       });
     }
   }
