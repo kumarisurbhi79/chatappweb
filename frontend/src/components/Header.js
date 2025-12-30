@@ -1,5 +1,4 @@
 import React from 'react';
-import { useAuth } from '../utils/AuthContext';
 import config from '../config/config';
 import './Header.css';
 

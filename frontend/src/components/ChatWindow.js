@@ -1,5 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useAuth } from '../utils/AuthContext';
+import React, { useEffect, useRef } from 'react';
 import config from '../config/config';
 import MessageInput from './MessageInput';
 import './ChatWindow.css';
@@ -90,7 +89,7 @@ const ChatWindow = ({
           </div>
         ) : (
           filteredMessages.map((message, index) => {
-            const isOwnMessage = message.sender._id == currentUser.id;
+            const isOwnMessage = message.sender._id === currentUser.id;
             const showAvatar = !isOwnMessage && (
               index === 0 || 
               filteredMessages[index - 1].sender._id !== message.sender._id

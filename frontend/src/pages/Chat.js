@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../utils/AuthContext';
 import config from '../config/config';
@@ -14,13 +14,11 @@ const Chat = () => {
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  const [isTyping, setIsTyping] = useState(false);
-  const [typingUsers, setTypingUsers] = useState(new Set());
   const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const navigate = useNavigate();
 
   // Function to fetch users with recent messages
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       const response = await fetch(`${config.API_URL}/api/user/all`, {
         headers: getAuthHeaders(),
@@ -33,7 +31,7 @@ const Chat = () => {
     } catch (error) {
       console.error('Error fetching users:', error);
     }
-  };
+  }, [getAuthHeaders]);
 
   // Initialize socket connection
   useEffect(() => {
@@ -120,7 +118,7 @@ const Chat = () => {
   // Fetch all users with recent messages
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [fetchUsers]);
 
   // Fetch chat history when user is selected
   useEffect(() => {
