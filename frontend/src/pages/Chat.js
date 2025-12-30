@@ -14,7 +14,6 @@ const Chat = () => {
   const [users, setUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [onlineUsers, setOnlineUsers] = useState(new Set());
-  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   const navigate = useNavigate();
 
   // Function to fetch users with recent messages
@@ -38,7 +37,6 @@ const Chat = () => {
     if (user) {
       console.log('🚀 Connecting user:', user.username);
       socketService.connect(user.id);
-      setConnectionStatus('Connected');
 
       // Listen for incoming messages
       socketService.onReceiveMessage((data) => {
@@ -92,16 +90,10 @@ const Chat = () => {
         console.log('🔴 User went offline:', data.userId);
       });
 
-      // Listen for typing indicators
-      socketService.onUserTyping((data) => {
-        if (data.userId === selectedUser?._id) {
-          setIsTyping(data.isTyping);
-          
-          if (data.isTyping) {
-            setTimeout(() => setIsTyping(false), 3000);
-          }
-        }
-      });
+      // Listen for typing indicators (disabled for now)
+      // socketService.onUserTyping((data) => {
+      //   console.log('User typing:', data);
+      // });
 
       // Get initial online users
       setTimeout(() => {
@@ -111,7 +103,6 @@ const Chat = () => {
 
     return () => {
       socketService.removeAllListeners();
-      setConnectionStatus('Disconnected');
     };
   }, [user, selectedUser]);
 
@@ -251,7 +242,6 @@ const Chat = () => {
           currentUser={user}
           onSendMessage={handleSendMessage}
           onTyping={handleTyping}
-          isTyping={typingUsers.has(selectedUser?._id)}
         />
       </div>
     </div>

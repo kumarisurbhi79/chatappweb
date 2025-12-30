@@ -43,8 +43,8 @@ const ChatWindow = ({
     if (!selectedUser || !currentUser) return false;
     
     return (
-      (message.sender._id == currentUser.id && message.receiver._id == selectedUser._id) ||
-      (message.sender._id == selectedUser._id && message.receiver._id == currentUser.id)
+      (message.sender._id === currentUser.id && message.receiver._id === selectedUser._id) ||
+      (message.sender._id === selectedUser._id && message.receiver._id === currentUser.id)
     );
   });
 
