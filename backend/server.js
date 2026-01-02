@@ -20,9 +20,18 @@ const server = http.createServer(app);
 // Get frontend URL from environment variable or use localhost for development
 const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
 
+// Allow multiple origins for development and production
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://incredible-donut-864c3a.netlify.app",
+  FRONTEND_URL
+].filter((origin, index, self) => self.indexOf(origin) === index); // Remove duplicates
+
+console.log('🌐 Allowed CORS origins:', allowedOrigins);
+
 const io = socketIo(server, {
   cors: {
-    origin: FRONTEND_URL,
+    origin: allowedOrigins,
     methods: ["GET", "POST"],
     credentials: true
   }
@@ -30,7 +39,7 @@ const io = socketIo(server, {
 
 // Middleware
 app.use(cors({
-  origin: FRONTEND_URL,
+  origin: allowedOrigins,
   credentials: true
 }));
 app.use(express.json());
@@ -167,6 +176,6 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`🌐 Frontend URL: ${FRONTEND_URL}`);
+  console.log(`🌐 Allowed Origins: ${allowedOrigins.join(', ')}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
