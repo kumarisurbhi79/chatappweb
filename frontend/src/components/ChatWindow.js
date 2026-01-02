@@ -42,9 +42,12 @@ const ChatWindow = ({
   const filteredMessages = messages.filter(message => {
     if (!selectedUser || !currentUser) return false;
     
+    // Handle both user.id and user._id formats
+    const currentUserId = currentUser.id || currentUser._id;
+    
     return (
-      (message.sender._id === currentUser.id && message.receiver._id === selectedUser._id) ||
-      (message.sender._id === selectedUser._id && message.receiver._id === currentUser.id)
+      (message.sender._id === currentUserId && message.receiver._id === selectedUser._id) ||
+      (message.sender._id === selectedUser._id && message.receiver._id === currentUserId)
     );
   });
 
@@ -53,7 +56,8 @@ const ChatWindow = ({
     totalMessages: messages.length,
     filteredMessages: filteredMessages.length,
     selectedUser: selectedUser?.username,
-    currentUser: currentUser?.username || currentUser?.id
+    currentUserId: currentUser?.id || currentUser?._id,
+    currentUserName: currentUser?.username
   });
 
   if (!selectedUser) {

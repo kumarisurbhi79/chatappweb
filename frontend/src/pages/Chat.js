@@ -16,6 +16,29 @@ const Chat = () => {
   const [onlineUsers, setOnlineUsers] = useState(new Set());
   const navigate = useNavigate();
 
+  // Debug current user info
+  useEffect(() => {
+    if (user) {
+      console.log('👤 Current user info:', {
+        id: user.id,
+        _id: user._id, 
+        username: user.username
+      });
+      
+      // Test API connectivity
+      const testAPI = async () => {
+        try {
+          const healthResponse = await fetch(`${config.API_URL}/api/health`);
+          const healthData = await healthResponse.json();
+          console.log('🏥 Backend health check:', healthData);
+        } catch (error) {
+          console.error('🏥 Backend health check failed:', error);
+        }
+      };
+      testAPI();
+    }
+  }, [user]);
+
   // Function to fetch users with recent messages
   const fetchUsers = useCallback(async () => {
     try {
@@ -187,6 +210,7 @@ const Chat = () => {
       });
 
       // Save to database
+      console.log('💾 Saving message to database...');
       const response = await fetch(`${config.API_URL}/api/chat/send`, {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -196,19 +220,23 @@ const Chat = () => {
         }),
       });
 
+      console.log('💾 Database save response status:', response.status);
+
       if (response.ok) {
         const result = await response.json();
-        console.log('💾 Message saved to database:', result);
+        console.log('💾 Message saved to database successfully:', result);
         
         // Just mark as sent, don't replace the whole message structure
         setMessages(prev => prev.map(msg => {
           if (msg._id === tempMessageId) {
-            return {
+            const updatedMsg = {
               ...msg,
               _id: result.data?._id || msg._id,
               sending: false,
               sent: true
             };
+            console.log('💾 Updated message status:', updatedMsg);
+            return updatedMsg;
           }
           return msg;
         }));
@@ -216,7 +244,8 @@ const Chat = () => {
         // Refresh user list
         setTimeout(() => fetchUsers(), 100);
       } else {
-        console.error('❌ Failed to save message to database');
+        const errorText = await response.text();
+        console.error('❌ Failed to save message to database. Status:', response.status, 'Error:', errorText);
         setMessages(prev => prev.map(msg => 
           msg._id === tempMessageId ? { ...msg, sending: false, failed: true } : msg
         ));
