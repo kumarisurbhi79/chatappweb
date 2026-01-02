@@ -48,6 +48,14 @@ const ChatWindow = ({
     );
   });
 
+  // Debug logging
+  console.log('🔍 ChatWindow Debug:', {
+    totalMessages: messages.length,
+    filteredMessages: filteredMessages.length,
+    selectedUser: selectedUser?.username,
+    currentUser: currentUser?.username || currentUser?.id
+  });
+
   if (!selectedUser) {
     return (
       <div className="chat-window">

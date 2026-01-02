@@ -56,8 +56,14 @@ const Chat = () => {
           createdAt: data.timestamp || new Date()
         };
         
+        console.log('📨 Adding message to state:', newMessage);
+        
         // Always add the message - filtering happens in ChatWindow
-        setMessages(prev => [...prev, newMessage]);
+        setMessages(prev => {
+          const updated = [...prev, newMessage];
+          console.log('📊 Messages state updated. Count:', updated.length);
+          return updated;
+        });
         
         // Refresh user list for unread count updates
         setTimeout(() => fetchUsers(), 100);
@@ -127,37 +133,8 @@ const Chat = () => {
             const data = await response.json();
             console.log('📨 Loaded', data.messages?.length || 0, 'messages from history');
             
-            // Merge with existing messages, avoiding duplicates
-            const historyMessages = data.messages || [];
-            setMessages(prev => {
-              // Create a map of existing messages
-              const existingMap = new Map();
-              prev.forEach(msg => {
-                const key = `${msg.sender._id}-${msg.receiver._id}-${msg.message}-${new Date(msg.createdAt).getTime()}`;
-                existingMap.set(key, msg);
-              });
-              
-              // Add history messages that don't exist
-              const newMessages = [...prev];
-              historyMessages.forEach(historyMsg => {
-                const key = `${historyMsg.sender._id}-${historyMsg.receiver._id}-${historyMsg.message}-${new Date(historyMsg.createdAt).getTime()}`;
-                if (!existingMap.has(key)) {
-                  // Check if it's a close duplicate (within 10 seconds)
-                  const isDuplicate = prev.some(existing => 
-                    existing.message === historyMsg.message &&
-                    existing.sender._id === historyMsg.sender._id &&
-                    Math.abs(new Date(existing.createdAt) - new Date(historyMsg.createdAt)) < 10000
-                  );
-                  
-                  if (!isDuplicate) {
-                    newMessages.push(historyMsg);
-                  }
-                }
-              });
-              
-              // Sort by creation time
-              return newMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-            });
+            // Simple approach: just set the messages from history
+            setMessages(data.messages || []);
           } else {
             const errorData = await response.json();
             console.error('❌ Failed to fetch chat history:', errorData);
@@ -193,7 +170,12 @@ const Chat = () => {
     
     try {
       // Add message to local state immediately
-      setMessages(prev => [...prev, tempMessage]);
+      console.log('📤 Adding temp message to state:', tempMessage);
+      setMessages(prev => {
+        const updated = [...prev, tempMessage];
+        console.log('📊 Messages state after sending. Count:', updated.length);
+        return updated;
+      });
 
       // Send via socket for real-time delivery
       socketService.sendMessage({
@@ -218,11 +200,12 @@ const Chat = () => {
         const result = await response.json();
         console.log('💾 Message saved to database:', result);
         
-        // Update message status to sent
+        // Just mark as sent, don't replace the whole message structure
         setMessages(prev => prev.map(msg => {
           if (msg._id === tempMessageId) {
             return {
-              ...result.data,
+              ...msg,
+              _id: result.data?._id || msg._id,
               sending: false,
               sent: true
             };
