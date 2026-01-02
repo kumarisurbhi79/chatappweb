@@ -42,7 +42,6 @@ const Chat = () => {
       socketService.onReceiveMessage((data) => {
         console.log('📨 Message received:', data);
         
-        // Add message to state - let the ChatWindow component filter by selected user
         const newMessage = {
           _id: `received-${Date.now()}`,
           message: data.message,
@@ -57,22 +56,12 @@ const Chat = () => {
           createdAt: data.timestamp || new Date()
         };
         
-        // Add message to state without selectedUser check (avoids closure issues)
-        setMessages(prev => {
-          // Check for duplicates
-          const exists = prev.some(msg => 
-            msg.message === newMessage.message &&
-            msg.sender._id === newMessage.sender._id &&
-            Math.abs(new Date(msg.createdAt) - new Date(newMessage.createdAt)) < 10000
-          );
-          
-          return exists ? prev : [...prev, newMessage];
-        });
+        // Always add the message - filtering happens in ChatWindow
+        setMessages(prev => [...prev, newMessage]);
         
-        // Always refresh user list for unread count updates
+        // Refresh user list for unread count updates
         setTimeout(() => fetchUsers(), 100);
         
-        // Show notification sound/effect
         console.log('🔔 New message from:', data.senderName);
       });
 
@@ -187,25 +176,24 @@ const Chat = () => {
     if (!selectedUser || !messageText.trim()) return;
 
     const tempMessageId = `temp-${Date.now()}`;
+    const tempMessage = {
+      _id: tempMessageId,
+      message: messageText,
+      sender: {
+        _id: user.id,
+        username: user.username,
+        avatar: user.avatar
+      },
+      receiver: {
+        _id: selectedUser._id
+      },
+      createdAt: new Date(),
+      sending: true
+    };
     
     try {
-      // Add message to local state immediately for instant feedback
-      const newMessage = {
-        _id: tempMessageId,
-        message: messageText,
-        sender: {
-          _id: user.id,
-          username: user.username,
-          avatar: user.avatar
-        },
-        receiver: {
-          _id: selectedUser._id
-        },
-        createdAt: new Date(),
-        sending: true
-      };
-
-      setMessages(prev => [...prev, newMessage]);
+      // Add message to local state immediately
+      setMessages(prev => [...prev, tempMessage]);
 
       // Send via socket for real-time delivery
       socketService.sendMessage({
@@ -230,7 +218,7 @@ const Chat = () => {
         const result = await response.json();
         console.log('💾 Message saved to database:', result);
         
-        // Replace the temporary message with the actual saved message
+        // Update message status to sent
         setMessages(prev => prev.map(msg => {
           if (msg._id === tempMessageId) {
             return {
@@ -242,12 +230,10 @@ const Chat = () => {
           return msg;
         }));
         
-        // Refresh user list to update recent messages order
+        // Refresh user list
         setTimeout(() => fetchUsers(), 100);
       } else {
-        const errorData = await response.json();
-        console.error('❌ Failed to save message to database:', errorData);
-        // Mark message as failed
+        console.error('❌ Failed to save message to database');
         setMessages(prev => prev.map(msg => 
           msg._id === tempMessageId ? { ...msg, sending: false, failed: true } : msg
         ));
