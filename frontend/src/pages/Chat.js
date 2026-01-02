@@ -42,32 +42,32 @@ const Chat = () => {
       socketService.onReceiveMessage((data) => {
         console.log('📨 Message received:', data);
         
-        // Only add message if it's for the currently selected conversation
-        if (selectedUser && data.senderId === selectedUser._id) {
-          const newMessage = {
-            _id: Date.now().toString(),
-            message: data.message,
-            sender: {
-              _id: data.senderId,
-              username: data.senderName,
-              avatar: data.senderAvatar
-            },
-            receiver: {
-              _id: user.id
-            },
-            createdAt: data.timestamp
-          };
+        // Add message to state - let the ChatWindow component filter by selected user
+        const newMessage = {
+          _id: `received-${Date.now()}`,
+          message: data.message,
+          sender: {
+            _id: data.senderId,
+            username: data.senderName,
+            avatar: data.senderAvatar
+          },
+          receiver: {
+            _id: user.id
+          },
+          createdAt: data.timestamp || new Date()
+        };
+        
+        // Add message to state without selectedUser check (avoids closure issues)
+        setMessages(prev => {
+          // Check for duplicates
+          const exists = prev.some(msg => 
+            msg.message === newMessage.message &&
+            msg.sender._id === newMessage.sender._id &&
+            Math.abs(new Date(msg.createdAt) - new Date(newMessage.createdAt)) < 10000
+          );
           
-          // Check if message already exists to prevent duplicates
-          setMessages(prev => {
-            const exists = prev.some(msg => 
-              msg.message === newMessage.message &&
-              msg.sender._id === newMessage.sender._id &&
-              Math.abs(new Date(msg.createdAt) - new Date(newMessage.createdAt)) < 5000
-            );
-            return exists ? prev : [...prev, newMessage];
-          });
-        }
+          return exists ? prev : [...prev, newMessage];
+        });
         
         // Always refresh user list for unread count updates
         setTimeout(() => fetchUsers(), 100);
@@ -137,23 +137,50 @@ const Chat = () => {
           if (response.ok) {
             const data = await response.json();
             console.log('📨 Loaded', data.messages?.length || 0, 'messages from history');
-            setMessages(data.messages || []);
+            
+            // Merge with existing messages, avoiding duplicates
+            const historyMessages = data.messages || [];
+            setMessages(prev => {
+              // Create a map of existing messages
+              const existingMap = new Map();
+              prev.forEach(msg => {
+                const key = `${msg.sender._id}-${msg.receiver._id}-${msg.message}-${new Date(msg.createdAt).getTime()}`;
+                existingMap.set(key, msg);
+              });
+              
+              // Add history messages that don't exist
+              const newMessages = [...prev];
+              historyMessages.forEach(historyMsg => {
+                const key = `${historyMsg.sender._id}-${historyMsg.receiver._id}-${historyMsg.message}-${new Date(historyMsg.createdAt).getTime()}`;
+                if (!existingMap.has(key)) {
+                  // Check if it's a close duplicate (within 10 seconds)
+                  const isDuplicate = prev.some(existing => 
+                    existing.message === historyMsg.message &&
+                    existing.sender._id === historyMsg.sender._id &&
+                    Math.abs(new Date(existing.createdAt) - new Date(historyMsg.createdAt)) < 10000
+                  );
+                  
+                  if (!isDuplicate) {
+                    newMessages.push(historyMsg);
+                  }
+                }
+              });
+              
+              // Sort by creation time
+              return newMessages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            });
           } else {
             const errorData = await response.json();
             console.error('❌ Failed to fetch chat history:', errorData);
-            setMessages([]);
           }
         } catch (error) {
           console.error('❌ Error fetching chat history:', error);
-          setMessages([]);
         }
       };
 
       fetchChatHistory();
-    } else {
-      // Clear messages when no user is selected
-      setMessages([]);
     }
+    // Don't clear messages when no user is selected to preserve real-time messages
   }, [selectedUser, getAuthHeaders]);
 
   const handleSendMessage = async (messageText) => {
