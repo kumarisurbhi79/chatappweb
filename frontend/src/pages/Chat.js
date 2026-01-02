@@ -176,11 +176,13 @@ const Chat = () => {
     if (!selectedUser || !messageText.trim()) return;
 
     const tempMessageId = `temp-${Date.now()}`;
+    const currentUserId = user.id || user._id;
+    
     const tempMessage = {
       _id: tempMessageId,
       message: messageText,
       sender: {
-        _id: user.id,
+        _id: currentUserId,
         username: user.username,
         avatar: user.avatar
       },
@@ -204,7 +206,7 @@ const Chat = () => {
       socketService.sendMessage({
         receiverId: selectedUser._id,
         message: messageText,
-        senderId: user.id,
+        senderId: currentUserId,
         senderName: user.username,
         senderAvatar: user.avatar
       });

@@ -79,7 +79,7 @@ const ChatWindow = ({
         <div className="chat-user-info">
           <div className="chat-user-avatar">
             {selectedUser.avatar ? (
-              <img src={`http://localhost:5000${selectedUser.avatar}`} alt={selectedUser.username} />
+              <img src={`${config.API_URL}${selectedUser.avatar}`} alt={selectedUser.username} />
             ) : (
               <span>{selectedUser.username.charAt(0).toUpperCase()}</span>
             )}
