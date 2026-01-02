@@ -116,20 +116,30 @@ const Chat = () => {
     if (selectedUser) {
       const fetchChatHistory = async () => {
         try {
+          console.log('📜 Fetching chat history with:', selectedUser.username);
           const response = await fetch(`${config.API_URL}/api/chat/history/${selectedUser._id}`, {
             headers: getAuthHeaders(),
           });
 
           if (response.ok) {
             const data = await response.json();
-            setMessages(data.messages);
+            console.log('📨 Loaded', data.messages?.length || 0, 'messages from history');
+            setMessages(data.messages || []);
+          } else {
+            const errorData = await response.json();
+            console.error('❌ Failed to fetch chat history:', errorData);
+            setMessages([]);
           }
         } catch (error) {
-          console.error('Error fetching chat history:', error);
+          console.error('❌ Error fetching chat history:', error);
+          setMessages([]);
         }
       };
 
       fetchChatHistory();
+    } else {
+      // Clear messages when no user is selected
+      setMessages([]);
     }
   }, [selectedUser, getAuthHeaders]);
 
@@ -177,16 +187,30 @@ const Chat = () => {
       });
 
       if (response.ok) {
-        // Update message status to sent
-        setMessages(prev => prev.map(msg => 
-          msg._id === tempMessageId ? { ...msg, sending: false, sent: true } : msg
-        ));
-        console.log('💾 Message saved to database');
+        const result = await response.json();
+        console.log('💾 Message saved to database:', result);
+        
+        // Replace the temporary message with the actual saved message
+        if (result.data) {
+          setMessages(prev => prev.map(msg => 
+            msg._id === tempMessageId ? {
+              ...result.data,
+              sending: false,
+              sent: true
+            } : msg
+          ));
+        } else {
+          // Fallback: just mark as sent
+          setMessages(prev => prev.map(msg => 
+            msg._id === tempMessageId ? { ...msg, sending: false, sent: true } : msg
+          ));
+        }
         
         // Refresh user list to update recent messages order
         setTimeout(() => fetchUsers(), 100);
       } else {
-        console.error('❌ Failed to save message to database');
+        const errorData = await response.json();
+        console.error('❌ Failed to save message to database:', errorData);
         // Mark message as failed
         setMessages(prev => prev.map(msg => 
           msg._id === tempMessageId ? { ...msg, sending: false, failed: true } : msg

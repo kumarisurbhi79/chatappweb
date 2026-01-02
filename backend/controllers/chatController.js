@@ -7,6 +7,8 @@ const sendMessage = async (req, res) => {
     const { receiverId, message, messageType = 'text' } = req.body;
     const senderId = req.user._id;
 
+    console.log('📤 Sending message:', { senderId, receiverId, message });
+
     // Check if receiver exists
     const receiver = await User.findById(receiverId);
     if (!receiver) {
@@ -21,20 +23,28 @@ const sendMessage = async (req, res) => {
       messageType
     });
 
-    await newMessage.save();
+    const savedMessage = await newMessage.save();
+    console.log('💾 Message saved to DB:', savedMessage._id);
 
     // Populate sender and receiver info
-    const populatedMessage = await Message.findById(newMessage._id)
+    const populatedMessage = await Message.findById(savedMessage._id)
       .populate('sender', 'username avatar')
       .populate('receiver', 'username avatar');
 
+    console.log('📨 Returning populated message:', populatedMessage);
+
     res.status(201).json({
+      success: true,
       message: 'Message sent successfully',
       data: populatedMessage
     });
   } catch (error) {
-    console.error('Send message error:', error);
-    res.status(500).json({ message: 'Server error while sending message' });
+    console.error('❌ Send message error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server error while sending message',
+      error: error.message 
+    });
   }
 };
 
@@ -43,6 +53,8 @@ const getChatHistory = async (req, res) => {
   try {
     const { userId } = req.params;
     const currentUserId = req.user._id;
+
+    console.log('📜 Fetching chat history between:', currentUserId, 'and', userId);
 
     const messages = await Message.find({
       $or: [
@@ -55,10 +67,20 @@ const getChatHistory = async (req, res) => {
     .sort({ createdAt: 1 })
     .limit(100); // Limit to last 100 messages
 
-    res.json({ messages });
+    console.log('📨 Found', messages.length, 'messages in chat history');
+
+    res.json({ 
+      success: true, 
+      messages,
+      count: messages.length 
+    });
   } catch (error) {
-    console.error('Get chat history error:', error);
-    res.status(500).json({ message: 'Server error while fetching chat history' });
+    console.error('❌ Get chat history error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error while fetching chat history',
+      error: error.message 
+    });
   }
 };
 

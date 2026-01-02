@@ -51,13 +51,34 @@ app.use('/api/user', userRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Health check endpoint
-app.get('/api/health', (req, res) => {
-  res.status(200).json({
-    status: 'OK',
-    message: 'Chat App Backend is running',
-    timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
-  });
+app.get('/api/health', async (req, res) => {
+  try {
+    // Check MongoDB connection
+    const Message = require('./models/Message');
+    const messageCount = await Message.countDocuments();
+    
+    res.status(200).json({
+      status: 'OK',
+      message: 'Chat App Backend is running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: {
+        connected: true,
+        messagesCount: messageCount
+      }
+    });
+  } catch (error) {
+    res.status(200).json({
+      status: 'OK',
+      message: 'Chat App Backend is running',
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || 'development',
+      database: {
+        connected: false,
+        error: error.message
+      }
+    });
+  }
 });
 
 // Basic error handling middleware
