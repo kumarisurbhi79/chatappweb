@@ -41,22 +41,35 @@ const Chat = () => {
       // Listen for incoming messages
       socketService.onReceiveMessage((data) => {
         console.log('📨 Message received:', data);
-        const newMessage = {
-          _id: Date.now().toString(),
-          message: data.message,
-          sender: {
-            _id: data.senderId,
-            username: data.senderName,
-            avatar: data.senderAvatar
-          },
-          receiver: {
-            _id: user.id
-          },
-          createdAt: data.timestamp
-        };
-        setMessages(prev => [...prev, newMessage]);
         
-        // Refresh user list to update recent messages
+        // Only add message if it's for the currently selected conversation
+        if (selectedUser && data.senderId === selectedUser._id) {
+          const newMessage = {
+            _id: Date.now().toString(),
+            message: data.message,
+            sender: {
+              _id: data.senderId,
+              username: data.senderName,
+              avatar: data.senderAvatar
+            },
+            receiver: {
+              _id: user.id
+            },
+            createdAt: data.timestamp
+          };
+          
+          // Check if message already exists to prevent duplicates
+          setMessages(prev => {
+            const exists = prev.some(msg => 
+              msg.message === newMessage.message &&
+              msg.sender._id === newMessage.sender._id &&
+              Math.abs(new Date(msg.createdAt) - new Date(newMessage.createdAt)) < 5000
+            );
+            return exists ? prev : [...prev, newMessage];
+          });
+        }
+        
+        // Always refresh user list for unread count updates
         setTimeout(() => fetchUsers(), 100);
         
         // Show notification sound/effect
@@ -104,7 +117,7 @@ const Chat = () => {
     return () => {
       socketService.removeAllListeners();
     };
-  }, [user, selectedUser]);
+  }, [user]); // Only depend on user, not selectedUser
 
   // Fetch all users with recent messages
   useEffect(() => {
@@ -146,7 +159,7 @@ const Chat = () => {
   const handleSendMessage = async (messageText) => {
     if (!selectedUser || !messageText.trim()) return;
 
-    const tempMessageId = Date.now().toString();
+    const tempMessageId = `temp-${Date.now()}`;
     
     try {
       // Add message to local state immediately for instant feedback
@@ -191,20 +204,16 @@ const Chat = () => {
         console.log('💾 Message saved to database:', result);
         
         // Replace the temporary message with the actual saved message
-        if (result.data) {
-          setMessages(prev => prev.map(msg => 
-            msg._id === tempMessageId ? {
+        setMessages(prev => prev.map(msg => {
+          if (msg._id === tempMessageId) {
+            return {
               ...result.data,
               sending: false,
               sent: true
-            } : msg
-          ));
-        } else {
-          // Fallback: just mark as sent
-          setMessages(prev => prev.map(msg => 
-            msg._id === tempMessageId ? { ...msg, sending: false, sent: true } : msg
-          ));
-        }
+            };
+          }
+          return msg;
+        }));
         
         // Refresh user list to update recent messages order
         setTimeout(() => fetchUsers(), 100);
